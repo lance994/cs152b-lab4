@@ -175,7 +175,7 @@ module switch(
     
     
     
-    assign patterns = 168'b1000_0100_0010_1000_0010_0001;
+    assign patterns = 168'b1000_0100_0010_0010_0001_0001_1000_0100_0010_1000_0010_0001;
     
     // FSM
     always @(*) begin

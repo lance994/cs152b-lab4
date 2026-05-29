@@ -4,7 +4,7 @@ module vga_display
         input wire [3:0] output_pattern,
         input wire [3:0] state,
 //        input wire [5:0] level,
-//        input wire [5:0] high_score,
+        input wire [3:0] p1_score, p2_score,
 //        input wire [32:0] PERIOD,
         output wire hsync, vsync,
         output wire [11:0] rgb
@@ -50,22 +50,22 @@ module vga_display
             localparam BOX_ONE_L_BORDER    = 0;
             localparam BOX_ONE_R_BORDER    = 320;
             localparam BOX_ONE_T_BORDER    = 0;
-            localparam BOX_ONE_B_BORDER    = 240;
+            localparam BOX_ONE_B_BORDER    = 220;
         
             localparam BOX_TWO_L_BORDER  = 321;
             localparam BOX_TWO_R_BORDER  = 640;
             localparam BOX_TWO_T_BORDER  = 0;
-            localparam BOX_TWO_B_BORDER  = 240;
+            localparam BOX_TWO_B_BORDER  = 220;
         
             localparam BOX_THREE_L_BORDER = 0;
             localparam BOX_THREE_R_BORDER = 320;
-            localparam BOX_THREE_T_BORDER = 241;
-            localparam BOX_THREE_B_BORDER = 480;
+            localparam BOX_THREE_T_BORDER = 221;
+            localparam BOX_THREE_B_BORDER = 440;
         
             localparam BOX_FOUR_L_BORDER   = 321;
             localparam BOX_FOUR_R_BORDER   = 640;
-            localparam BOX_FOUR_T_BORDER   = 241;
-            localparam BOX_FOUR_B_BORDER   = 480;
+            localparam BOX_FOUR_T_BORDER   = 221;
+            localparam BOX_FOUR_B_BORDER   = 440;
 
     // 25 MHz clock generation
     reg [1:0] clk_divider = 0;
@@ -372,6 +372,10 @@ module vga_display
 //                        rgb_reg <= 12'b110011001100;
 //                else if (x >= H_CAP2_L_BORDER && x <= H_CAP2_R_BORDER && y >= H_CAP2_T_BORDER && y <= H_CAP2_B_BORDER)
 //                        rgb_reg <= 12'b110011001100;
+
+
+                
+                // boxes/playing area
                 if (x >= BOX_ONE_L_BORDER && x <= BOX_ONE_R_BORDER && y >= BOX_ONE_T_BORDER && y <= BOX_ONE_B_BORDER && output_pattern[0])
                     rgb_reg <= 12'b111100000000;
                 else if (x >= BOX_TWO_L_BORDER && x <= BOX_TWO_R_BORDER && y >= BOX_TWO_T_BORDER && y <= BOX_TWO_B_BORDER && output_pattern[1])
@@ -380,10 +384,24 @@ module vga_display
                     rgb_reg <= 12'b000000001111;
                 else if (x >= BOX_FOUR_L_BORDER && x <= BOX_FOUR_R_BORDER && y >= BOX_FOUR_T_BORDER && y <= BOX_FOUR_B_BORDER && output_pattern[3])
                     rgb_reg <= 12'b111111110000;
-                else if (x >= 0 && x <= 640 && y >=0 && y <= 480)
-                    rgb_reg <= 12'b100010001000;  
-                else
-                    rgb_reg <= 12'b000000000000;
+                else begin
+                    // p1 score
+                    if (x  >= 295 && x <= 315 && y >= 5 && y <= 35 && p1_score == 0) begin
+                        rgb_reg <= 12'b000000000000;
+                    end
+                    
+                    // cross bar 
+                    else if (x >= 318 && x <= 322 && y >= 19 && y <= 21)
+                        rgb_reg = 12'b000000000000;
+                    
+                    //p2 score
+                    else if (x  >= 325 && x <= 345 && y >= 5 && y <= 35 && p2_score == 0) begin
+                            rgb_reg <= 12'b000000000000;
+                    end
+                    
+                    else
+                        rgb_reg <=  12'b100010001000;
+                end
             end
         end 
     //end
