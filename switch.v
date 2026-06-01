@@ -28,11 +28,13 @@ module switch(
     input p2_switch, p2_btn1, p2_btn2, p2_btn3, p2_btn4,
     output hsync,
     output vsync,
-    output [11:0] rgb
+    output [11:0] rgb,
+    output [6:0] seg,
+    output [3:0] an
     );
     
     // States
-    localparam START = 0, DISPLAY_PATTERN = 1, DISPLAY_FLASH = 2, PLAY = 3, TEST = 4, P1_WIN = 5, P2_WIN = 6;//, CORRECT = 4, PASS = 5, FAIL = 6;
+    localparam START = 0, DISPLAY_PATTERN = 1, DISPLAY_FLASH = 2, PLAY = 3, TEST = 4, P1_WIN = 5, P2_WIN = 6, BOTH_LOST = 7;// PASS = 5, FAIL = 6;
     
     // Registered Variables
     reg [3:0] state, next_state;
@@ -52,6 +54,8 @@ module switch(
     reg p2_btn1_prev, p2_btn2_prev, p2_btn3_prev, p2_btn4_prev;
     reg [3:0] p2_score, next_p2_score;
     
+     reg p1_lost, next_p1_lost;
+     reg p2_lost, next_p2_lost;
     // Variables
     reg [3:0] output_pattern;
     
@@ -62,24 +66,23 @@ module switch(
     reg rst_gen;    
     wire [167:0] patterns;
     
-    
-    vga_display vga_dis_inst (.clk(clk), .reset(rst), .output_pattern(output_pattern), .state(state),
-//            .level(level),
-//            .high_score(next_high_score),
-//            .PERIOD(PERIOD),
-        .hsync(hsync), .vsync(vsync), .rgb(rgb) );
-        
-    //random_generator random_gen_inst (.clk(clk), .rst(rst), .rst_gen(rst_gen), .seed(seed), .patterns(patterns) );
-
-    debouncer p11_debouncer (.clk(clk), .rst(rst), .btn(p1_btn1), .btn_db(p1_btn1_db) );
-    debouncer p12_debouncer (.clk(clk), .rst(rst), .btn(p1_btn2), .btn_db(p1_btn2_db) );
-    debouncer p13_debouncer (.clk(clk), .rst(rst), .btn(p1_btn3), .btn_db(p1_btn3_db) );
-    debouncer p14_debouncer (.clk(clk), .rst(rst), .btn(p1_btn4), .btn_db(p1_btn4_db) );
    
-    debouncer p21_debouncer (.clk(clk), .rst(rst), .btn(p2_btn1), .btn_db(p2_btn1_db) );
-    debouncer p22_debouncer (.clk(clk), .rst(rst), .btn(p2_btn2), .btn_db(p2_btn2_db) );
-    debouncer p23_debouncer (.clk(clk), .rst(rst), .btn(p2_btn3), .btn_db(p2_btn3_db) );
-    debouncer p24_debouncer (.clk(clk), .rst(rst), .btn(p2_btn4), .btn_db(p2_btn4_db) );
+    
+    vga_display vga_dis_inst (.clk(clk), .reset(rst), .output_pattern(output_pattern), .state(state), .counter(counter), .PERIOD(PERIOD), .hsync(hsync), .vsync(vsync), .rgb(rgb) );
+        
+    random_generator random_gen_inst ( .clk(clk), .rst(rst), .rst_gen(rst_gen), .seed(seed), .patterns(patterns) );
+    
+    seven_seg_display ssd ( .clk(clk), .p1_score(p1_score), .p2_score(p2_score), .seg(seg), .an(an) );
+
+    debouncer p11_debouncer ( .clk(clk), .rst(rst), .btn(p1_btn1), .btn_db(p1_btn1_db) );
+    debouncer p12_debouncer ( .clk(clk), .rst(rst), .btn(p1_btn2), .btn_db(p1_btn2_db) );
+    debouncer p13_debouncer ( .clk(clk), .rst(rst), .btn(p1_btn3), .btn_db(p1_btn3_db) );
+    debouncer p14_debouncer ( .clk(clk), .rst(rst), .btn(p1_btn4), .btn_db(p1_btn4_db) );
+   
+    debouncer p21_debouncer ( .clk(clk), .rst(rst), .btn(p2_btn1), .btn_db(p2_btn1_db) );
+    debouncer p22_debouncer ( .clk(clk), .rst(rst), .btn(p2_btn2), .btn_db(p2_btn2_db) );
+    debouncer p23_debouncer ( .clk(clk), .rst(rst), .btn(p2_btn3), .btn_db(p2_btn3_db) );
+    debouncer p24_debouncer ( .clk(clk), .rst(rst), .btn(p2_btn4), .btn_db(p2_btn4_db) );
         
     // Counter
     always @(posedge clk or posedge rst) begin
@@ -139,6 +142,7 @@ module switch(
             p1_btn3_prev <= 0;
             p1_btn4_prev <= 0;
             p1_score <= 0;
+            p1_lost <= 0;
             
             p2_input <= 24'b0;
             p2_submitted <= 0;
@@ -146,7 +150,9 @@ module switch(
             p2_btn2_prev <= 0;
             p2_btn3_prev <= 0;
             p2_btn4_prev <= 0;      
-            p2_score <= 0;     
+            p2_score <= 0; 
+            p2_lost <= 0;
+    
         end
         else begin
             state <= next_state;
@@ -162,6 +168,7 @@ module switch(
             p1_btn3_prev <= p1_btn3_db;
             p1_btn4_prev <= p1_btn4_db;
             p1_score <= next_p1_score;
+            p1_lost <= next_p1_lost;
             
             p2_input <= next_p2_input;
             p2_submitted <= next_p2_submitted;
@@ -170,12 +177,12 @@ module switch(
             p2_btn3_prev <= p2_btn3_db;
             p2_btn4_prev <= p2_btn4_db;
             p2_score <= next_p2_score;
+            p2_lost <= next_p2_lost;
         end
     end
     
     
     
-    assign patterns = 168'b1000_0100_0010_0010_0001_0001_1000_0100_0010_1000_0010_0001;
     
     // FSM
     always @(*) begin
@@ -191,10 +198,12 @@ module switch(
         next_p1_input <= p1_input;
         next_p1_submitted <= p1_submitted;
         next_p1_score <= p1_score;
+        next_p1_lost <= p1_lost;
         
         next_p2_input <= p2_input;
         next_p2_submitted <= p2_submitted;
         next_p2_score <= p2_score;
+        next_p2_lost <= p2_lost;
         
         if (state == START) begin
             output_pattern <= 4'b1111;
@@ -204,7 +213,10 @@ module switch(
                 next_state <= DISPLAY_PATTERN;
                 
                 next_p1_submitted <= 0;
+                next_p1_lost <= 0;
                 next_p2_submitted <= 0;
+                next_p2_lost <= 0;
+
             end   
         end
         
@@ -235,9 +247,15 @@ module switch(
         
         else if (state == PLAY) begin
             output_pattern <= 4'b1111;
+            enable_counter <= 1;
+            
             if (p1_switch) begin
-                if (p1_input == patterns[(round-1)*24 +: 24]) begin                    
+                if (p1_input == patterns[(round-1)*24 +: 24]) begin 
+                    enable_counter <= 0;                   
                     next_state <= P1_WIN;
+                end
+                else begin
+                    next_p1_lost <= 1;
                 end
             end
             else if (p1_submitted < 6) begin
@@ -260,8 +278,12 @@ module switch(
             end
             
             if (p2_switch) begin
-                if (p2_input == patterns[(round-1)*24 +: 24]) begin                    
+                if (p2_input == patterns[(round-1)*24 +: 24]) begin          
+                    enable_counter <= 0;          
                     next_state <= P2_WIN;
+                end
+                else begin
+                    next_p2_lost <= 1;
                 end
             end
             else if (p2_submitted < 6) begin
@@ -282,6 +304,12 @@ module switch(
                     next_p2_submitted <= p2_submitted + 1;
                 end
             end
+            
+            if (p1_lost && p2_lost || counter >= 40*PERIOD) begin
+                enable_counter <= 0;
+                next_state <= BOTH_LOST;
+            end
+            
         end
         
         else if (state == P1_WIN) begin
@@ -306,6 +334,16 @@ module switch(
             end
         end
 
+        else if (state == BOTH_LOST) begin
+            output_pattern <= 4'b1000;
+            enable_counter <= 1;
+            if (counter >= 2*PERIOD) begin
+                enable_counter <= 0;
+                next_round <= round + 1;
+                next_state <= START;
+            end
+        end
+    
     end
 
         
