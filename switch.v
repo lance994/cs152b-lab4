@@ -34,7 +34,7 @@ module switch(
     );
     
     // States
-    localparam START = 0, DISPLAY_PATTERN = 1, DISPLAY_FLASH = 2, PLAY = 3, TEST = 4, P1_WIN = 5, P2_WIN = 6, BOTH_LOST = 7;// PASS = 5, FAIL = 6;
+    localparam START = 0, DISPLAY_PATTERN = 1, DISPLAY_FLASH = 2, PLAY = 3, TEST = 4, P1_WIN = 5, P2_WIN = 6, BOTH_LOST = 7, P1_DONE = 8, P2_DONE = 9;// PASS = 5, FAIL = 6;
     
     // Registered Variables
     reg [3:0] state, next_state;
@@ -206,9 +206,18 @@ module switch(
         next_p2_lost <= p2_lost;
         
         if (state == START) begin
-            output_pattern <= 4'b1111;
-            PERIOD <= 25_000_000; //13
-            if (btnL) begin
+            PERIOD <= 25_000_000; 
+            
+            if (!p1_switch && !p2_switch)
+                output_pattern <= 4'b1111;
+            else if (!p1_switch)
+                output_pattern <= 4'b0101;
+            else if (!p2_switch)
+                output_pattern <= 4'b1010;
+            else
+                output_pattern <= 4'b0000;
+            
+            if (btnL && !p1_switch && !p2_switch) begin
                 next_patterns_shown <= 0;
                 next_state <= DISPLAY_PATTERN;
                 
@@ -319,7 +328,10 @@ module switch(
                 enable_counter <= 0;
                 next_p1_score <= p1_score + 1;
                 next_round <= round + 1;
-                next_state <= START;
+                if (next_p1_score >= 3)
+                    next_state <= P1_DONE;
+                else 
+                    next_state <= START;
             end
         end
         
@@ -330,7 +342,10 @@ module switch(
                 enable_counter <= 0;
                 next_p2_score <= p2_score + 1;
                 next_round <= round + 1;
-                next_state <= START;
+                if (next_p2_score >= 3)
+                    next_state <= P2_DONE;
+                else 
+                    next_state <= START;
             end
         end
 
@@ -343,7 +358,7 @@ module switch(
                 next_state <= START;
             end
         end
-    
+       
     end
 
         
