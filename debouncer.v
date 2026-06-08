@@ -27,9 +27,9 @@ module debouncer(
     output reg btn_db
     );
     
-    reg [15:0] counter = 0;    // Counter for debounce logic
-    reg sync_to_clk0;          // Synchronization register 0
-    reg sync_to_clk1;          // Synchronization register 1
+    reg [15:0] counter = 0;    
+    reg sync_to_clk0;          
+    reg sync_to_clk1;          
         
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -45,7 +45,7 @@ module debouncer(
         end else begin
             counter <= counter + 1'b1;
             if (counter == 2) begin
-                btn_db <= sync_to_clk1; // Toggle the debounced signal
+                btn_db <= sync_to_clk1;
             end
         end
     end
