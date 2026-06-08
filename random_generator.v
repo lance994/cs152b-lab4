@@ -18,11 +18,11 @@ module random_generator (
             generating    <= 1;
         end
         else if (generating) begin
-            patterns[pattern_count * 4 +: 4] <= 4'b0001 << lfsr[1:0]; // lfsr[1:0] gives clean 0-3
+            patterns[pattern_count * 4 +: 4] <= 4'b0001 << lfsr[1:0]; 
             lfsr          <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};
             pattern_count <= pattern_count + 1;
 
-            if (pattern_count == 41) begin  // 7*6=42 patterns, stop at index 41
+            if (pattern_count == 41) begin  
                 generating <= 0;
             end
         end
